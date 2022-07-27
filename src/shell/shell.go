@@ -12,18 +12,35 @@ import (
 )
 
 func ShellLoop() {
-	const cmdPrompt = "wyash$ "
+	cmdPrompt := shellPromptCreate()
 	const exit = "exit"
 	cmdExecStatus := true
 	for cmdExecStatus {
 		fmt.Print(cmdPrompt)
 		cmd := shellReadCmd()
 		if cmd == exit {
-			os.Exit(1)
+			os.Exit(0)
 		}
 		cmdArgs := shellGetArgs(cmd)
 		shellRun(cmdArgs)
 	}
+}
+
+func shellPromptCreate() string {
+	cmdWhoami, _ := exec.Command("whoami").Output()
+	cmdHostname, _ := exec.Command("hostname").Output()
+	cmdWhoamiStr := rmLastChrUint8(cmdWhoami)
+	cmdHostnameStr := rmLastChrUint8(cmdHostname)
+	cmdPrompt := cmdWhoamiStr + "|" + cmdHostnameStr + "~ "
+	return cmdPrompt
+}
+
+func rmLastChrUint8(str []uint8) string {
+	return string(str[0:len(str) - 1])
+}
+
+func rmLastChrStr(str string) string {
+	return str[0:len(str) - 1]
 }
 
 func shellReadCmd() string {
@@ -32,9 +49,8 @@ func shellReadCmd() string {
 	if err != nil {
 		dieWithLog(traceFunc() + ": error of input reading.")
 	}
-	cmdLen := len(cmd)
-	cmd = cmd[0:cmdLen - 1]
-	return cmd
+	cmdStr := rmLastChrStr(cmd)
+	return cmdStr
 }
 
 func dieWithLog(err string) {
@@ -61,7 +77,6 @@ func shellRun(cmdArgs []string) {
 			return
 		}
 	}
-	shellExecCmd(cmdArgs)
 }
 
 func shellCd(cmdArgs []string) {
