@@ -7,32 +7,34 @@ import (
 	"log"
 	"strings"
 	"os/exec"
+	"os/user"
 	"runtime"
 	// "reflect"
 )
 
+var prompt = shellPromptCreate()
+var prevPwd string = shellGetPwd()
+
 func ShellLoop() {
-	cmdPrompt := shellPromptCreate()
 	const exit = "exit"
-	cmdExecStatus := true
-	for cmdExecStatus {
-		fmt.Print(cmdPrompt)
+	const quit = "quit"
+	execStatus := true
+	for execStatus {
+		fmt.Print(prompt)
 		cmd := shellReadCmd()
-		if cmd == exit {
-			os.Exit(0)
-		}
 		cmdArgs := shellGetArgs(cmd)
 		shellRun(cmdArgs)
 	}
 }
 
 func shellPromptCreate() string {
-	cmdWhoami, _ := exec.Command("whoami").Output()
-	cmdHostname, _ := exec.Command("hostname").Output()
-	cmdWhoamiStr := rmLastChrUint8(cmdWhoami)
-	cmdHostnameStr := rmLastChrUint8(cmdHostname)
-	cmdPrompt := cmdWhoamiStr + "|" + cmdHostnameStr + "~ "
-	return cmdPrompt
+	user := shellGetUser()
+	hostname := shellGetHostname()
+	pwd := shellGetPwd()
+	homedir := shellGetHomeDir()
+	pwd = strings.Replace(pwd, homedir, "~", 1)
+	prompt := "# " + user + " @ " + hostname + " # - [" + pwd + "]\n~ $ "
+	return prompt
 }
 
 func rmLastChrUint8(str []uint8) string {
@@ -66,39 +68,66 @@ func shellGetArgs(cmd string) []string {
 
 var builtins = map[string]func([]string){
 	"cd": shellCd,
+	"exit": shellExit,
+	"quit": shellExit,
 }
 
 func shellRun(cmdArgs []string) {
-	// fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
 	for builtin, builtin_func := range builtins {
 		if builtin == cmdArgs[0] {
-			// fmt.Println(traceFunc(), "cmdArgs[0] = " + cmdArgs[0])
 			builtin_func(cmdArgs)
 			return
 		}
 	}
+	shellExecCmd(cmdArgs)
+}
+
+func shellGetHomeDir() string {
+	homedir, _ := os.UserHomeDir()
+	homedirStr := string(homedir)
+	return homedirStr
+}
+
+func shellGetPwd() string {
+	pwd, _ := os.Getwd()
+	pwdStr := string(pwd)
+	return pwdStr
+}
+
+func shellGetUser() string {
+	user, _ := user.Current()
+	userStr := user.Username
+	return userStr
+}
+
+func shellGetHostname() string {
+	hostname, _ := os.Hostname()
+	hostnameStr := string(hostname)
+	return hostnameStr
 }
 
 func shellCd(cmdArgs []string) {
-	// fmt.Println(traceFunc(), "CD")
 	cmdArgsLen := len(cmdArgs)
 	if cmdArgsLen < 2 {
 		os.Chdir("..")
 	} else {
-		os.Chdir(cmdArgs[1])
+		switch cmdArgs[1] {
+		case "~":
+			cmdHome, _ := os.UserHomeDir()
+			os.Chdir(cmdHome)
+		case "-":
+			fmt.Println(prevPwd)
+			os.Chdir(prevPwd)
+		default:
+			os.Chdir(cmdArgs[1])
+		}
 	}
+	prompt = shellPromptCreate()
 }
 
 func shellExecCmd(cmdArgs []string) {
-	// fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
 	executable := cmdArgs[0]
-	// fmt.Println("executable = ", executable)
-	// fmt.Println("executable type of ", reflect.TypeOf(executable))
 	execArgs := cmdArgs[1:]
-	// execArgsLen := len(execArgs)
-	// execArgs = execArgs[0:execArgsLen - 1]
-	// fmt.Println(traceFunc(), "execArgs = ", execArgs)
-	// fmt.Println(traceFunc(), "execArgs type of ", reflect.TypeOf(execArgs))
 	cmd := exec.Command(executable, execArgs...)
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
@@ -117,4 +146,8 @@ func traceFunc() string {
 	funcNameSplited := strings.Split(funcName, "/")
 	shortFuncName := funcNameSplited[len(funcNameSplited) - 1]
 	return shortFuncName
+}
+
+func shellExit(cmdArgs []string) {
+	os.Exit(0)
 }
