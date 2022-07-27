@@ -8,12 +8,12 @@ import (
 	"strings"
 	"os/exec"
 	"runtime"
-	"reflect"
+	// "reflect"
 )
 
 func ShellLoop() {
 	const cmdPrompt = "wyash$ "
-	const exit = "exit\n"
+	const exit = "exit"
 	cmdExecStatus := true
 	for cmdExecStatus {
 		fmt.Print(cmdPrompt)
@@ -53,10 +53,10 @@ var builtins = map[string]func([]string){
 }
 
 func shellRun(cmdArgs []string) {
-	fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
+	// fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
 	for builtin, builtin_func := range builtins {
 		if builtin == cmdArgs[0] {
-			fmt.Println(traceFunc(), "cmdArgs[0] = " + cmdArgs[0])
+			// fmt.Println(traceFunc(), "cmdArgs[0] = " + cmdArgs[0])
 			builtin_func(cmdArgs)
 			return
 		}
@@ -65,7 +65,7 @@ func shellRun(cmdArgs []string) {
 }
 
 func shellCd(cmdArgs []string) {
-	fmt.Println(traceFunc(), "CD")
+	// fmt.Println(traceFunc(), "CD")
 	cmdArgsLen := len(cmdArgs)
 	if cmdArgsLen < 2 {
 		os.Chdir("..")
@@ -75,18 +75,20 @@ func shellCd(cmdArgs []string) {
 }
 
 func shellExecCmd(cmdArgs []string) {
-	fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
+	// fmt.Println(traceFunc(), "cmdArgs = ", cmdArgs)
 	executable := cmdArgs[0]
 	// fmt.Println("executable = ", executable)
 	// fmt.Println("executable type of ", reflect.TypeOf(executable))
 	execArgs := cmdArgs[1:]
-	tmpArgs := strings.Join(execArgs, " ")
 	// execArgsLen := len(execArgs)
 	// execArgs = execArgs[0:execArgsLen - 1]
-	fmt.Println(traceFunc(), "execArgs = ", tmpArgs)
-	fmt.Println(traceFunc(), "execArgs type of ", reflect.TypeOf(tmpArgs))
-	cmdOutput, err := exec.Command(executable, tmpArgs).Output()
-	fmt.Println(traceFunc(), string(cmdOutput))
+	// fmt.Println(traceFunc(), "execArgs = ", execArgs)
+	// fmt.Println(traceFunc(), "execArgs type of ", reflect.TypeOf(execArgs))
+	cmd := exec.Command(executable, execArgs...)
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmdOutput, err := cmd.Output()
+	fmt.Println(string(cmdOutput))
 	if err != nil {
 		fmt.Println(err)
 	}
