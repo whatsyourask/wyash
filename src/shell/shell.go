@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"os/user"
 	"runtime"
-	// "reflect"
 )
 
 var prompt = shellPromptCreate()
